@@ -6,25 +6,35 @@ public class GridComponent : MonoBehaviour
     public Image Image;
     public int Size;
     public Button TickButton;
-    public Button ResizeButton;
     public Button ResetButton;
+    public Button PlayButton;
     public InputField SizeInput;
+    public Slider RateSlider;
 
     private readonly CellGrid _grid = new CellGrid();
     private Texture2D _texture;
+    private bool _isPlaying = false;
+    private float _nextTick;
 
     void Awake ()
 	{
 		_grid.Seed("seed_input.txt");
         TickButton.onClick.AddListener(OnTick);
-        ResizeButton.onClick.AddListener(OnResize);
 	    ResetButton.onClick.AddListener(OnReset);
+        PlayButton.onClick.AddListener(OnPlayPause);
         SizeInput.onEndEdit.AddListener(OnSizeInput);
-	}
-
-    void Start()
-    {
+        _nextTick = Time.time;
         Setup(Size);
+        SizeInput.text = Size.ToString();
+    }
+
+    void Update()
+    {
+        if (_isPlaying && _nextTick < Time.time)
+        {
+            _nextTick = Time.time + RateSlider.value;
+            Tick();
+        }
     }
 
     private void Setup(int width)
@@ -37,8 +47,7 @@ public class GridComponent : MonoBehaviour
         UpdateView();
     }
 
-    private void OnTick()
-    {
+    private void Tick() {
         _grid.Tick();
         UpdateView();
     }
@@ -60,9 +69,10 @@ public class GridComponent : MonoBehaviour
         _texture.Apply();
     }
 
-    private void OnResize()
-    {
-        Setup(Size);
+    private void OnTick() {
+        _isPlaying = false;
+        PlayButton.GetComponentInChildren<Text>().text = "Play";
+        Tick();
     }
 
     private void OnSizeInput(string arg0)
@@ -79,5 +89,14 @@ public class GridComponent : MonoBehaviour
     {
         _grid.Seed("seed_input.txt");
         UpdateView();
+    }
+
+    private void OnPlayPause() 
+    {
+        _isPlaying = !_isPlaying;
+
+        PlayButton.GetComponentInChildren<Text>().text = _isPlaying
+            ? "Pause"
+            : "Play";
     }
 }
