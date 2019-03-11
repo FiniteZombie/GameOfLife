@@ -1,7 +1,10 @@
 ﻿using Assets.Scripts;
 using System.Collections.Generic;
-using UnityEngine;
 
+/// <summary>
+/// Manages a grid of cells represented by a HashSet of "alive" cells
+/// where each cell is hashed by combining it's x and y components
+/// </summary>
 public class CellGrid
 {
     private readonly HashSet<Cell> _alive = new HashSet<Cell>();
@@ -10,18 +13,11 @@ public class CellGrid
 
     // Used when checking if any cells should be added, cached to avoid allocations
     private readonly List<Cell> _cachedAddCheckList = new List<Cell>() { Capacity = 8 };
-    
+
     /// <summary>
-    /// The more cells are alive, the less likely this will be O(1) due to collisions.
+    /// Seed the grid based on a set of coordinates for alive cells in the file at the given path
     /// </summary>
-    public bool IsAlive(long x, long y)
-    {
-        // Because Cell is a struct, this allocation happens on the stack
-        var cell = new Cell(x, y);
-
-        return _alive.Contains(cell);
-    }
-
+    /// <param name="path"></param>
     public void Seed(string path)
     {
         _alive.Clear();
@@ -59,9 +55,23 @@ public class CellGrid
                 _alive.Add(new Cell(x, y));
             }
         }
-        
+
     }
 
+    /// <summary>
+    /// The more cells are alive, the less likely this will be O(1) due to collisions in the hashset.
+    /// </summary>
+    public bool IsAlive(long x, long y)
+    {
+        // Because Cell is a struct, this allocation happens on the stack and will not stick around in the heap
+        var cell = new Cell(x, y);
+
+        return _alive.Contains(cell);
+    }
+
+    /// <summary>
+    /// Tick the simulation
+    /// </summary>
     public void Tick()
     {
         _toKill.Clear();
@@ -74,7 +84,7 @@ public class CellGrid
             GetNeighbors(cell, neighbors);
 
             // if alive, check if it should die
-            if (_alive.Contains(cell) && ShouldDie(cell, neighbors))
+            if (_alive.Contains(cell) && ShouldDie(neighbors))
             {
                 _toKill.Add(cell);
             }
@@ -100,7 +110,10 @@ public class CellGrid
         }
     }
 
-    private bool ShouldDie(Cell cell, List<Cell> neighbors)
+    /// <summary>
+    /// Check whether the cell surrounded by the given neighbors should die
+    /// </summary>
+    private bool ShouldDie(List<Cell> neighbors)
     {
         var aliveCount = 0;
         foreach (var neighbor in neighbors)
@@ -114,6 +127,9 @@ public class CellGrid
         return aliveCount < 2 || aliveCount > 3;
     }
 
+    /// <summary>
+    /// Check whether the given cell should be added
+    /// </summary>
     private bool ShouldAdd(Cell cell)
     {
         GetNeighbors(cell, _cachedAddCheckList);
@@ -131,6 +147,9 @@ public class CellGrid
         return aliveCount == 3;
     }
 
+    /// <summary>
+    /// Given a cell, get its neighbors and store them in the given List to prevent allocation
+    /// </summary>
     private static void GetNeighbors(Cell cell, List<Cell> neighbors)
     {
         neighbors.Clear();
